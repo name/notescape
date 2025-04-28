@@ -1,116 +1,115 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Plugin, WorkspaceLeaf, ItemView, WorkspaceSplit, setIcon, Setting, PluginSettingTab } from "obsidian";
+import * as fs from 'fs';
 
-// Remember to rename these classes and interfaces!
+const VIEW_TYPE_STATS = "notescape-stats-view";
 
-interface MyPluginSettings {
-	mySetting: string;
+// Settings interface
+interface NotescapePluginSettings {
+	showSkillNames: boolean;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+// Default settings
+const DEFAULT_SETTINGS: NotescapePluginSettings = {
+	showSkillNames: true
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+// Temporary skill data structure
+interface Skill {
+	name: string;
+	level: number;
+	xp: number;
+	icon: string;
+}
 
-	async onload() {
-		await this.loadSettings();
+const tempSkills: Skill[] = [
+	// Scribe (Words Written)
+	{ name: "Scribe", level: 5, xp: 500, icon: "pencil" },
+	// Archivist (Files/Notes Created)
+	{ name: "Archivist", level: 3, xp: 300, icon: "file-archive" },
+	// Connector (Links Created)
+	{ name: "Connector", level: 7, xp: 700, icon: "link" },
+	// Hoarder (Everything Totaled)
+	{ name: "Hoarder", level: 8, xp: 800, icon: "archive" },
+	// Researcher (Unique Sources or Tags Used)
+	{ name: "Researcher", level: 6, xp: 600, icon: "search" },
+	// Curator (Attachments or Media Added)
+	{ name: "Curator", level: 4, xp: 400, icon: "image" },
+	// Taskmaster (Tasks Completed)
+	{ name: "Taskmaster", level: 9, xp: 900, icon: "checkmark" },
+	// Total (Overall Progress)
+	{ name: "Total Level", level: 10, xp: 1000, icon: "star" },
+];
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+class StatsView extends ItemView {
+	constructor(leaf: WorkspaceLeaf) {
+		super(leaf);
+	}
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
+	getViewType() {
+		return VIEW_TYPE_STATS;
+	}
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
+	getDisplayText() {
+		return "Notescape Stats";
+	}
+
+	// Add this method to set the icon
+	getIcon() {
+		return "chart-no-axes-column";
+	}
+
+	async onOpen() {
+		const container = this.containerEl.children[1];
+		container.empty();
+		// Add a class for easier CSS targeting if needed elsewhere, though styles are self-contained here
+		container.addClass("notescape-stats-container");
+
+		// --- Grid Creation ---
+		const skillsGrid = container.createDiv({ cls: "notescape-skills-grid" });
+
+		tempSkills.forEach(skill => {
+			const skillBox = skillsGrid.createDiv({ cls: "notescape-skill-box" });
+
+			// Add or remove class based on settings
+			if (this.plugin.settings.showSkillNames) {
+				skillBox.classList.add("show-names");
+				skillBox.classList.remove("hide-names");
+			} else {
+				skillBox.classList.add("hide-names");
+				skillBox.classList.remove("show-names");
 			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
+
+			// Icon (using Obsidian icons)
+			const iconContainer = skillBox.createDiv({ cls: "notescape-skill-icon" });
+			setIcon(iconContainer, skill.icon); // Use Obsidian's setIcon function
+
+			// Level/Level
+			const levelContainer = skillBox.createDiv({ cls: "notescape-skill-level" });
+			levelContainer.createSpan({ text: `${skill.level}` });
+			//levelContainer.createSpan({ text: ` / ${skill.level}` }); // Displaying level/level
+
+			// Name
+			if (this.plugin.settings.showSkillNames) {
+				skillBox.createDiv({ cls: "notescape-skill-name", text: skill.name });
 			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
+			// Optional: Tooltip on hover to show XP
+			skillBox.setAttr('title', `${skill.name}\nXP: ${skill.xp.toLocaleString()}`);
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
-	onunload() {
-
+	async onClose() {
+		// Cleanup if needed
 	}
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+	plugin: NotescapePlugin;
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+class NotescapeSettingTab extends PluginSettingTab {
+	plugin: NotescapePlugin;
 
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: NotescapePlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -121,14 +120,111 @@ class SampleSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+			.setName('Show Skill Names')
+			.setDesc('Toggle the display of skill names in the stats view.')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showSkillNames)
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
+					this.plugin.settings.showSkillNames = value;
+					await this.plugin.saveData(this.plugin.settings);
+					this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_STATS).forEach(leaf => {
+						if (leaf.view instanceof StatsView) {
+							leaf.view.onOpen(); // Refresh the view
+						}
+					});
 				}));
+	}
+}
+
+
+export default class NotescapePlugin extends Plugin {
+	settings: NotescapePluginSettings;
+
+	async onload() {
+		await this.loadSettings();
+
+		this.registerView(
+			VIEW_TYPE_STATS,
+			(leaf) => {
+				const statsView = new StatsView(leaf);
+				statsView.plugin = this; // Pass the plugin instance to the view
+				return statsView;
+			}
+		);
+
+		this.addRibbonIcon("chart-no-axes-column", "Open Stats View", async () => {
+			const leftSplit = this.app.workspace.leftSplit;
+			// Ensure the left sidebar is open
+			if (!leftSplit) {
+				console.error("Notescape Plugin: Left sidebar split not found.");
+				return;
+			}
+			leftSplit.expand();
+
+			// 1. Check if our view already exists in the left split
+			let statsLeaf: WorkspaceLeaf | null = null;
+			this.app.workspace.getLeavesOfType(VIEW_TYPE_STATS).forEach((leaf) => {
+				if (leaf.getRoot() === leftSplit) {
+					statsLeaf = leaf;
+				}
+			});
+
+			// If it exists, just reveal it
+			if (statsLeaf) {
+				this.app.workspace.revealLeaf(statsLeaf);
+				return;
+			}
+
+			// 2. If not, find the file explorer leaf to split
+			let fileExplorerLeaf: WorkspaceLeaf | null = null;
+			// Iterate directly through the leaves in the left split
+			this.app.workspace.iterateAllLeaves((leaf) => {
+				if (leaf.getRoot() === leftSplit && leaf.view?.getViewType() === 'file-explorer') {
+					fileExplorerLeaf = leaf;
+				}
+			});
+
+			let newLeaf: WorkspaceLeaf | null = null;
+			if (fileExplorerLeaf) {
+				// 3a. Split the file explorer leaf horizontally (top/bottom)
+				newLeaf = this.app.workspace.createLeafBySplit(fileExplorerLeaf, 'horizontal'); // Changed 'vertical' to 'horizontal'
+			} else {
+				// 3b. Fallback: Create a new leaf in the left sidebar (new tab)
+				console.warn("Notescape Plugin: File explorer leaf not found in the left sidebar. Opening in a new tab.");
+				newLeaf = this.app.workspace.getLeftLeaf(false);
+			}
+
+			// 4. Ensure leaf exists and set state
+			if (!newLeaf) {
+				console.error("Notescape Plugin: Could not create or get leaf in the left sidebar.");
+				return;
+			}
+
+			await newLeaf.setViewState({ type: VIEW_TYPE_STATS, active: true });
+			this.app.workspace.revealLeaf(newLeaf);
+		});
+
+		// Add settings tab
+		this.addSettingTab(new NotescapeSettingTab(this.app, this));
+	}
+
+	async onunload() {
+		this.app.workspace.detachLeavesOfType(VIEW_TYPE_STATS);
+		this.app.workspace.getLeavesOfType(VIEW_TYPE_STATS).forEach(leaf => {
+			leaf.detach();
+		});
+		this.app.workspace.onLayoutReady(() => {
+			this.app.workspace.getLeavesOfType(VIEW_TYPE_STATS).forEach(leaf => {
+				leaf.detach();
+			});
+		});
+	}
+
+	async loadSettings() {
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	}
+
+	async saveSettings() {
+		await this.saveData(this.settings);
 	}
 }

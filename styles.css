@@ -6,3 +6,138 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+.notescape-stats-container {
+  padding: 8px;
+  height: 100%;
+  overflow-y: auto;
+  background-color: var(--background-secondary);
+  /* Use secondary background for the view */
+}
+
+.notescape-skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  /* Adapt to content, but respect min width */
+  max-width: calc(3 * (70px + 8px) - 8px);
+  /* Limit to 3 columns width (adjust 8px for gap) */
+  gap: 8px;
+  padding: 8px;
+  background-color: var(--background-primary);
+  /* Darker background */
+  border: 2px solid var(--background-modifier-border);
+  /* Darker border */
+  border-radius: 5px;
+  justify-content: flex-start;
+  /* Align items to the start of the grid */
+}
+
+.notescape-skill-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  /* Two columns */
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background-color: var(--background-secondary);
+  /* Darker box background */
+  border: 1px solid var(--background-modifier-border);
+  /* Darker border */
+  border-radius: 3px;
+  font-family: var(--font-interface);
+  /* Use interface font */
+  color: var(--text-normal);
+  /* Light text color */
+  text-align: center;
+  min-height: 0px;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+  font-size: 10px;
+}
+
+.notescape-skill-box.show-names {
+  grid-template-rows: 1fr 1fr;
+}
+
+.notescape-skill-box.hide-names {
+  grid-template-rows: 1fr;
+}
+
+.notescape-skill-icon {
+  grid-column: 1 / 2;
+  /* Span one column */
+  grid-row: 1 / 2;
+  /* Span one row */
+  justify-self: start;
+  /* Align to the left */
+  align-self: center;
+  /* Align to the top */
+  margin: 2px;
+  color: var(--text-muted);
+  /* Muted color for icons */
+  max-width: 50%;
+  /* Limit to 50% of the container */
+  width: auto;
+  /* Adjust width dynamically */
+  height: auto;
+  /* Adjust height dynamically */
+}
+
+.notescape-skill-icon svg {
+  width: 100%;
+  /* Make the SVG fill the container */
+  height: 100%;
+  display: block;
+}
+
+.notescape-skill-name {
+  grid-column: 1 / 3;
+  /* Span two columns */
+  grid-row: 2 / 3;
+  /* Span one row */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  color: var(--text-normal);
+  /* Light text color */
+  margin: 0;
+  padding: 2px;
+  /* border-top: 1px solid #555; */
+  /* Remove top border */
+  align-self: end;
+  /* Align to the bottom */
+}
+
+.notescape-skill-level {
+  grid-column: 2 / 3;
+  /* Span one column */
+  grid-row: 1 / 2;
+  /* Span one row */
+  justify-self: end;
+  /* Align to the right */
+  align-self: center;
+  /* Align to the bottom */
+  color: var(--text-muted);
+  white-space: nowrap;
+  margin: 2px;
+  font-size: 11px;
+  max-width: 50%;
+  /* Limit to 50% of the container */
+  width: auto;
+  /* Adjust width dynamically */
+}
+
+.notescape-skill-box:hover {
+  background-color: var(--background-modifier-hover);
+  /* Darker background on hover */
+  border-color: var(--background-modifier-border);
+  /* Darker border on hover */
+}
+
+.notescape-skill-box:hover .notescape-skill-icon {
+  color: var(--text-normal);
+  /* Less muted icon on hover */
+}
